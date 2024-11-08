@@ -83,83 +83,6 @@ def calculate_mse(predictions):
     mse_value = mean_squared_error(true_ratings, predicted_ratings)
     return mse_value
 
-def calculate_precision_recall_at_k(predictions, k=25, threshold=4.0):
-    user_est_true = defaultdict(list)
-    for pred in predictions:
-        user_est_true[pred.uid].append((pred.est, pred.r_ui))
-
-    precisions = []
-    recalls = []
-    for uid, user_ratings in user_est_true.items():
-        # Sort user ratings by estimated value
-        user_ratings.sort(key=lambda x: x[0], reverse=True)
-        # Get the top-k items
-        user_ratings_k = user_ratings[:k]
-        # Number of relevant items
-        n_rel = sum((true_r >= threshold) for (_, true_r) in user_ratings)
-        # Number of recommended items in top-k that are relevant
-        n_rec_k = sum((true_r >= threshold) for (_, true_r) in user_ratings_k)
-        if n_rel == 0:
-            continue  # Skip users with no relevant items
-        precision = n_rec_k / k
-        recall = n_rec_k / n_rel
-        precisions.append(precision)
-        recalls.append(recall)
-    if len(precisions) > 0:
-        precision_at_k = sum(precisions) / len(precisions)
-        recall_at_k = sum(recalls) / len(recalls)
-    else:
-        precision_at_k = 0
-        recall_at_k = 0
-    return precision_at_k, recall_at_k
-
-def calculate_f1_score(precision, recall):
-    if precision + recall == 0:
-        return 0
-    return 2 * (precision * recall) / (precision + recall)
-
-def calculate_ndcg_at_k(predictions, k=25, threshold=3.5):
-    user_est_true = defaultdict(list)
-    for pred in predictions:
-        user_est_true[pred.uid].append((pred.est, pred.r_ui))
-    ndcgs = []
-    for uid, user_ratings in user_est_true.items():
-        user_ratings.sort(key=lambda x: x[0], reverse=True)
-        user_ratings_k = user_ratings[:k]
-        dcg = 0.0
-        idcg = 0.0
-        for i, (_, true_r) in enumerate(user_ratings_k):
-            rel = 1 if true_r >= threshold else 0
-            dcg += rel / math.log2(i + 2)
-        user_ratings_sorted_by_true = sorted(user_ratings, key=lambda x: x[1], reverse=True)
-        user_ratings_sorted_by_true_k = user_ratings_sorted_by_true[:k]
-        for i, (_, true_r) in enumerate(user_ratings_sorted_by_true_k):
-            rel = 1 if true_r >= threshold else 0
-            idcg += rel / math.log2(i + 2)
-        ndcg = dcg / idcg if idcg > 0 else 0
-        ndcgs.append(ndcg)
-    ndcg_at_k = sum(ndcgs) / len(ndcgs)
-    return ndcg_at_k
-
-def calculate_mrr(predictions, threshold=3.5):
-    user_est_true = defaultdict(list)
-    for pred in predictions:
-        user_est_true[pred.uid].append((pred.est, pred.r_ui))
-    reciprocal_ranks = []
-    for uid, user_ratings in user_est_true.items():
-        user_ratings.sort(key=lambda x: x[0], reverse=True)
-        rank = 0
-        for i, (_, true_r) in enumerate(user_ratings):
-            if true_r >= threshold:
-                rank = i + 1
-                break
-        if rank > 0:
-            reciprocal_ranks.append(1 / rank)
-        else:
-            reciprocal_ranks.append(0)
-    mrr = sum(reciprocal_ranks) / len(reciprocal_ranks)
-    return mrr
-
 def calculate_coverage(predictions, total_items, k=25):
     recommended_items = set()
     user_estimated = defaultdict(list)
@@ -202,14 +125,6 @@ def evaluate_model_extended(predictions, k=25, threshold=3.5):
     # MSE
     mse_value = mean_squared_error(true_ratings, predicted_scores)
     
-    # Precision and Recall at K
-    # precision_at_k, recall_at_k = calculate_precision_recall_at_k(predictions, k=k, threshold=threshold)
-    # F1 Score
-    # f1_score_value = calculate_f1_score(precision_at_k, recall_at_k)
-    # NDCG at K
-    # ndcg_at_k = calculate_ndcg_at_k(predictions, k=k, threshold=threshold)
-    # MRR
-    # mrr_value = calculate_mrr(predictions, threshold=threshold)
     # Coverage
     total_items = len(ratings_filtered['placeID'].unique())
     coverage = calculate_coverage(predictions, total_items, k=k)
@@ -288,8 +203,8 @@ def recommend_for_new_user(
     price_range,
     accessibility,
     parking_required,
-    activity,
-    personality,
+    # activity,
+    # personality,
     num_recommendations=5
 ):
     # Start with all restaurants
@@ -354,7 +269,7 @@ user_type = st.sidebar.radio("Escolha o tipo de recomendação:",
 if user_type == "Usuário Existente - Lista de Itens":
     user_id = st.sidebar.text_input("Digite seu ID de Usuário")
     num_recommendations = st.sidebar.slider("Número de Recomendações", min_value=1, max_value=10, value=5)
-    rating_threshold = st.sidebar.slider("Nota Mínima Prevista", min_value=1.0, max_value=5.0, value=3.5, step=0.1)
+    # rating_threshold = st.sidebar.slider("Nota Mínima Prevista", min_value=1.0, max_value=5.0, value=3.5, step=0.1)
 
     if st.sidebar.button("Obter Recomendações"):
         recommendations = recommend_for_existing_user(user_id=user_id, num_recommendations=num_recommendations, rating_threshold=rating_threshold)
@@ -391,11 +306,11 @@ elif user_type == "Novo Usuário - Lista de Itens":
     accessibility = None if accessibility == "Qualquer" else accessibility
 
     parking_required = st.sidebar.checkbox("Requer Estacionamento")
-    activity = st.sidebar.selectbox("Atividade", options=["Qualquer", "Estudante", "Profissional"])
-    activity = None if activity == "Qualquer" else activity
+    # activity = st.sidebar.selectbox("Atividade", options=["Qualquer", "Estudante", "Profissional"])
+    # activity = None if activity == "Qualquer" else activity
 
-    personality = st.sidebar.selectbox("Personalidade", options=["Qualquer", "Extrovertido", "Reservado"])
-    personality = None if personality == "Qualquer" else personality
+    # personality = st.sidebar.selectbox("Personalidade", options=["Qualquer", "Extrovertido", "Reservado"])
+    # personality = None if personality == "Qualquer" else personality
 
     num_recommendations = st.sidebar.slider("Número de Recomendações", min_value=1, max_value=10, value=5)
 
@@ -406,8 +321,8 @@ elif user_type == "Novo Usuário - Lista de Itens":
             price_range=price_range,
             accessibility=accessibility,
             parking_required=parking_required,
-            activity=activity,
-            personality=personality,
+            # activity=activity,
+            # personality=personality,
             num_recommendations=num_recommendations
         )
 
@@ -420,8 +335,8 @@ elif user_type == "Novo Usuário - Lista de Itens":
 # Scenario 3: Existing User - New Item
 elif user_type == "Usuário Existente - Novo Item":
     user_id = st.sidebar.text_input("Digite seu ID de Usuário")
-    num_recommendations = st.sidebar.slider("Número de Recomendações", min_value=1, max_value=5, value=1)
-    rating_threshold = st.sidebar.slider("Nota Mínima Prevista", min_value=1.0, max_value=5.0, value=3.5, step=0.1)
+    # num_recommendations = st.sidebar.slider("Número de Recomendações", min_value=1, max_value=5, value=1)
+    # rating_threshold = st.sidebar.slider("Nota Mínima Prevista", min_value=1.0, max_value=5.0, value=3.5, step=0.1)
 
     if st.sidebar.button("Obter Recomendações de Novo Item"):
         recommendations = recommend_new_item_for_existing_user(user_id=user_id, num_recommendations=num_recommendations, rating_threshold=rating_threshold)
