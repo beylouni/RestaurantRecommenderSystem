@@ -23,8 +23,8 @@ ratings, user_cuisine, restaurant_cuisine, restaurant_info, restaurant_parking, 
 
 # Data Preprocessing: Remove users and items with very few ratings to reduce sparsity
 # Set thresholds
-min_user_ratings = 1
-min_item_ratings = 1
+min_user_ratings = 2
+min_item_ratings = 2
 
 # Filter users
 user_counts = ratings['userID'].value_counts()
@@ -42,10 +42,10 @@ data = Dataset.load_from_df(ratings_filtered[['userID', 'placeID', 'rating']], r
 
 # Perform GridSearchCV for hyperparameter tuning
 param_grid = {
-    'n_factors': [50, 100, 150],
-    'n_epochs': [20, 30, 40],
-    'lr_all': [0.002, 0.005, 0.007],
-    'reg_all': [0.02, 0.05, 0.1]
+    'n_factors': [25, 50, 100, 150],
+    'n_epochs': [20, 25, 30, 40],
+    'lr_all': [0.002, 0.005, 0.007, 0.009],
+    'reg_all': [0.02, 0.05, 0.1, 0.15]
 }
 
 gs = GridSearchCV(SVD, param_grid, measures=['rmse'], cv=5, n_jobs=-1)
@@ -55,6 +55,7 @@ gs.fit(data)
 best_rmse = gs.best_score['rmse']
 # Get best hyperparameters
 best_params = gs.best_params['rmse']
+print(best_params)
 
 # Use the best model
 best_model = gs.best_estimator['rmse']
